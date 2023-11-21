@@ -1,0 +1,43 @@
+<!-- header.ejs -->
+
+<!-- Sticky Header -->
+<header>
+  <nav class="navbar is-opaque is-fixed-top" role="navigation" aria-label="main navigation">
+      <div id="navbarBasicExample" class="navbar-menu">
+          <div class="navbar-start">
+            <div class="navbar-item has-text-centered">
+              <!-- Home button -->
+              <a class="button is-light" href="/">
+                Home
+              </a>
+            </div>
+            <!-- Additional navbar item for Create a New Post button -->
+            <div class="navbar-item has-text-centered">
+              <a class="button is-light" href="/create-event">
+                Add Event
+              </a>
+            </div>
+              <!-- Additional navigation items can be added here -->
+          </div>
+
+          <div class="navbar-end">
+              <div class="navbar-item">
+                <div class="buttons">
+                  <% if (user_id) { %>
+                    <!-- If user is logged in, show profile and logout buttons -->
+                    <a href="/user-threads" class="button is-light">Friend List</a>
+                    <a href="/profile" class="button is-primary">Friend Requests</a>
+                    <form action="/logout" method="post" style="display: inline;">
+                        <button type="submit" class="button is-light">Logout</button>
+                    </form>
+                  <% } else { %>
+                    <!-- If user is not logged in, show login button -->
+                    <a href="/login" class="button is-light">Login</a>
+                  <% } %>
+                </div>
+              </div>
+          </div>
+      </div>
+  </nav>
+</header>
+<!-- End of Header -->

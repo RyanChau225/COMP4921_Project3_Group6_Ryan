@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+</head>
+<body>
+    <!-- Sticky Header -->
+    <%- include("templates/header") %>
+    <!-- End of Header -->
+<div class="main-content">
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Calendar View</h1>
+            <div class="buttons">
+                <button id="today" class="button">Today</button>
+                <button id="upcoming" class="button">Upcoming</button>
+                <button id="week" class="button">Week</button>
+                <button id="month" class="button">Month</button>
+            </div>
+
+            <div id="currentMonth" class="title is-4"></div>
+
+            <div id="calendarContainer">
+                <!-- Calendar content will be dynamically updated here -->
+            </div>
+        </div>
+    </section>
+  </div>
+
+    <!-- Sticky Footer -->
+    <%- include("templates/footer") %>
+    <!-- End of Footer -->
+
+
+    <script>
+
+let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth();
+ 
+    function setCurrentMonth() {
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+                            "July", "August", "September", "October", "November", "December"];
+        const currentMonth = new Date().getMonth();
+        document.getElementById('currentMonth').innerText = `Current Month: ${monthNames[currentMonth]}`;
+    }
+
+    function displayWeeklyCalendarView(events) {
+    const container = document.getElementById('calendarContainer');
+    container.innerHTML = ''; // Clear current content
+    const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    
+    // Create a row for the days of the week
+    const daysRow = document.createElement('div');
+    daysRow.className = 'columns is-multiline';
+    weekDays.forEach(day => {
+        const dayColumn = document.createElement('div');
+        dayColumn.className = 'column is-one-seventh';
+        dayColumn.innerHTML = `<div class="has-text-centered"><strong>${day}</strong></div>`;
+        daysRow.appendChild(dayColumn);
+    });
+    container.appendChild(daysRow);
+
+    // Create a separate row for events
+    const eventsRow = document.createElement('div');
+    eventsRow.className = 'columns is-multiline';
+
+    weekDays.forEach((day, index) => {
+        const dayDate = getDayOfWeek(new Date(), index);
+        const dayEvents = events.filter(event => isSameDay(dayDate, new Date(event.startDateTime)));
+
+        const eventColumn = document.createElement('div');
+        eventColumn.className = 'column is-one-seventh';
+        eventColumn.innerHTML = dayEvents.map(event => 
+            `<div class="event">
+                <p>${event.title}</p>
+                <small>${new Date(event.startDateTime).toLocaleTimeString()}</small>
+            </div>`
+        ).join('');
+        eventsRow.appendChild(eventColumn);
+    });
+
+    container.appendChild(eventsRow);
+}
+
+// Helper functions
+function getDayOfWeek(date, dayIndex) {
+    const day = new Date(date);
+    day.setDate(day.getDate() - day.getDay() + dayIndex + 1);
+    return day;
+}
+
+function isSameDay(day1, day2) {
+    return day1.toDateString() === day2.toDateString();
+}
+
+
+
+function generateCalendar(year, month, events) {
+    const container = document.getElementById('calendarContainer');
+    container.innerHTML = ''; // Clear current content
+
+    // Create a row for the days of the week headers
+    const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const daysHeaderRow = document.createElement('div');
+    daysHeaderRow.className = 'columns is-multiline';
+    weekDays.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'column is-one-seventh';
+        dayHeader.innerHTML = `<div class="has-text-centered"><strong>${day}</strong></div>`;
+        daysHeaderRow.appendChild(dayHeader);
+    });
+    container.appendChild(daysHeaderRow);
+
+    // Determine the first day of the month
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startingDay = firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1;
+
+    // Create rows for each week
+    let weekRow = document.createElement('div');
+    weekRow.className = 'columns is-multiline';
+
+    // Fill in the blanks for days before the first of the month
+    for (let i = 0; i < startingDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'column is-one-seventh';
+        weekRow.appendChild(emptyCell);
+    }
+
+    // Fill in each day of the month
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+        if ((day + startingDay - 1) % 7 === 0) {
+            container.appendChild(weekRow); // Append the completed week row
+            weekRow = document.createElement('div'); // Start a new week row
+            weekRow.className = 'columns is-multiline';
+        }
+
+        const dayCell = document.createElement('div');
+        dayCell.className = 'column is-one-seventh';
+        dayCell.innerHTML = `<div class="day-number">${day}</div>`;
+
+        // Append events for each day
+        const dayDate = new Date(year, month, day);
+        events.forEach(event => {
+            const eventDate = new Date(event.startDateTime);
+            if (isSameDay(dayDate, eventDate)) {
+                const eventElement = document.createElement('div');
+                eventElement.className = 'event';
+                eventElement.innerHTML = `
+                    <p>${event.title}</p>
+                    <small>${eventDate.toLocaleTimeString()}</small>`;
+                dayCell.appendChild(eventElement);
+            }
+        });
+
+        weekRow.appendChild(dayCell); // Add day cell to the week row
+    }
+
+    // Append the last week row
+    container.appendChild(weekRow);
+}
+
+      
+      function updateCalendarData(url) {
+          fetch(url)
+              .then(response => response.json())
+              .then(events => {
+                  const container = document.getElementById('calendarContainer');
+                  container.innerHTML = ''; // Clear existing content
+
+                  if (events.length === 0) {
+                      container.innerHTML = '<p>No events to show.</p>';
+                      return;
+                  }
+
+                  events.forEach(event => {
+                      // Create and append event elements to the container
+                      const eventDiv = document.createElement('div');
+                      eventDiv.className = 'event';
+                      eventDiv.innerHTML = `
+                          <h3>${event.title}</h3>
+                          <p>Start: ${new Date(event.startDateTime).toLocaleString()}</p>
+                          <p>End: ${new Date(event.endDateTime).toLocaleString()}</p>
+                          <div style="background-color: ${event.color}; height: 20px; width: 20px;"></div>
+                      `;
+                      container.appendChild(eventDiv);
+                  });
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+                  document.getElementById('calendarContainer').innerHTML = '<p>Error loading events.</p>';
+              });
+      }
+
+      document.getElementById('today').addEventListener('click', function() {
+          updateCalendarData('/events/today');
+      });
+
+      document.getElementById('upcoming').addEventListener('click', function() {
+          updateCalendarData('/events/upcoming');
+      });
+
+      document.getElementById('week').addEventListener('click', function() {
+    fetch('/events/week')
+        .then(response => response.json())
+        .then(events => {
+            // Clear current content
+            const container = document.getElementById('calendarContainer');
+            container.innerHTML = '';
+
+            // Generate and display a weekly calendar view with events
+            // You will need to write a function to properly format and display this view
+            displayWeeklyCalendarView(events);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('calendarContainer').innerHTML = '<p>Error loading events.</p>';
+        });
+});
+
+
+document.getElementById('month').addEventListener('click', function() {
+    fetch('/events/month')
+        .then(response => response.json())
+        .then(events => {
+            // Show current month
+            setCurrentMonth();
+
+            // Generate the calendar for the current month with events
+            generateCalendar(currentYear, currentMonth, events);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('calendarContainer').innerHTML = '<p>Error loading events.</p>';
+        });
+});
+
+
+
+
+
+  </script>
+  
+</body>
+</html>

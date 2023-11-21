@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+</head>
+<body>
+    <!-- Sticky Header -->
+    <%- include("templates/header") %>
+    <!-- End of Header -->
+
+    <div class="main-content">
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-half has-text-centered">
+                    <h1 class="title">Welcome to the Calendar App</h1>
+                    <div class="buttons are-large is-centered">
+                        <a href="/login" class="button is-light">Login</a>
+                        <a href="/signup" class="button is-light">Register</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+  </div>
+
+    <!-- Sticky Footer -->
+    <%- include("templates/footer") %>
+    <!-- End of Footer -->
+</body>
+</html>
