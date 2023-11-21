@@ -64,6 +64,11 @@ body {
   }
 }
 
+.next-month-day .day-number {
+  color: #999; /* Lighter color for next month's days */
+}
+
+
 
 
 

@@ -163,9 +163,26 @@ function generateCalendar(year, month, events) {
         weekRow.appendChild(dayCell); // Add day cell to the week row
     }
 
+    // Fill in the remaining cells with days from the next month
+    const nextMonthDaysNeeded = (7 - (weekRow.children.length % 7)) % 7;
+    for (let nextDay = 1; nextDay <= nextMonthDaysNeeded; nextDay++) {
+        const nextDayCell = document.createElement('div');
+        nextDayCell.className = 'column is-one-seventh next-month-day';
+        nextDayCell.innerHTML = `<div class="day-number">${nextDay}</div>`;
+        weekRow.appendChild(nextDayCell);
+    }
+
     // Append the last week row
     container.appendChild(weekRow);
 }
+
+// Helper function to check if two dates are the same day
+function isSameDay(day1, day2) {
+    return day1.getFullYear() === day2.getFullYear() &&
+           day1.getMonth() === day2.getMonth() &&
+           day1.getDate() === day2.getDate();
+}
+
 
       
       function updateCalendarData(url) {
