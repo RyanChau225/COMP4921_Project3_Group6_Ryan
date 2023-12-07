@@ -154,6 +154,96 @@ router.post('/create-event', requireAuthentication, async (req, res) => {
   }
 });
 
+const thirtyDaysAgo = new Date();
+thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+router.get('/manage-events', requireAuthentication, async (req, res) => {
+  const thirtySecondsAgo = new Date(new Date() - 30 * 1000); // Current time minus 30 seconds
+
+  try {
+      const allEvents = await eventCollection.find({
+          userId: new ObjectId(req.session.user_id),
+          deletedAt: { $exists: false }
+      }).toArray();
+
+      const softDeletedEvents = await eventCollection.find({
+          userId: new ObjectId(req.session.user_id),
+          deletedAt: { $exists: true, $gte: thirtySecondsAgo }
+      }).toArray();
+
+      const expiredEvents = await eventCollection.find({
+          userId: new ObjectId(req.session.user_id),
+          deletedAt: { $exists: true, $lt: thirtySecondsAgo }
+      }).toArray();
+
+      console.log("Soft Deleted Events: ", softDeletedEvents);
+      console.log("Expired Events: ", expiredEvents);
+
+      res.render('manage-events', {
+          allEvents,
+          softDeletedEvents,
+          expiredEvents
+      });
+  } catch (error) {
+      res.status(500).render('error', { message: 'Error fetching events' });
+  }
+});
+
+
+
+router.post('/restore-event/:eventId', requireAuthentication, async (req, res) => {
+  const eventId = req.params.eventId;
+
+  try {
+      await eventCollection.updateOne(
+          { _id: new ObjectId(eventId), userId: new ObjectId(req.session.user_id) },
+          { $unset: { deletedAt: "" } } // Unset the deletedAt field
+      );
+      res.redirect('/manage-events'); // Redirect back to the manage events page
+  } catch (error) {
+      res.status(500).render('error', { message: 'Error restoring event' });
+  }
+});
+
+
+router.post('/hard-delete-event/:eventId', requireAuthentication, async (req, res) => {
+  const eventId = req.params.eventId;
+  const thirtySecondsAgo = new Date(new Date() - 30 * 1000);
+
+
+  try {
+      await eventCollection.deleteOne({ 
+          _id: new ObjectId(eventId), 
+          userId: new ObjectId(req.session.user_id),
+          deletedAt: { $lt: thirtySecondsAgo }
+      });
+      res.redirect('/manage-events');
+  } catch (error) {
+      res.status(500).render('error', { message: 'Error deleting event permanently' });
+  }
+});
+
+
+
+
+
+router.post('/delete-event/:eventId', requireAuthentication, async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = req.session.user_id;
+
+  try {
+      await eventCollection.updateOne(
+          { _id: new ObjectId(eventId), userId: new ObjectId(userId) },
+          { $set: { deletedAt: new Date() } }
+      );
+      res.redirect('/manage-events'); 
+  } catch (error) {
+      res.status(500).render('error', { message: 'Error deleting event' });
+  }
+});
+
+
+
 
 
 router.get('/events/today', requireAuthentication, async (req, res) => {
@@ -165,7 +255,8 @@ router.get('/events/today', requireAuthentication, async (req, res) => {
   try {
       const events = await eventCollection.find({
           userId: new ObjectId(req.session.user_id),
-          startDateTime: { $gte: startOfToday, $lt: endOfToday }
+          startDateTime: { $gte: startOfToday, $lt: endOfToday },
+          deletedAt: { $exists: false } // Exclude soft-deleted events
       }).toArray();
       res.json(events);
   } catch (ex) {
@@ -175,13 +266,15 @@ router.get('/events/today', requireAuthentication, async (req, res) => {
 });
 
 
+
 router.get('/events/upcoming', requireAuthentication, async (req, res) => {
   const now = new Date();
 
   try {
       const upcomingEvent = await eventCollection.find({
           userId: new ObjectId(req.session.user_id),
-          startDateTime: { $gte: now }
+          startDateTime: { $gte: now },
+          deletedAt: { $exists: false } // Exclude soft-deleted events
       }).sort({ startDateTime: 1 }).limit(1).toArray();
 
       res.json(upcomingEvent);
@@ -190,6 +283,7 @@ router.get('/events/upcoming', requireAuthentication, async (req, res) => {
       res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 router.get('/events/week', requireAuthentication, async (req, res) => {
   const today = new Date();
@@ -201,7 +295,8 @@ router.get('/events/week', requireAuthentication, async (req, res) => {
   try {
       const events = await eventCollection.find({
           userId: new ObjectId(req.session.user_id),
-          startDateTime: { $gte: firstDayOfWeek, $lt: lastDayOfWeek }
+          startDateTime: { $gte: firstDayOfWeek, $lt: lastDayOfWeek },
+          deletedAt: { $exists: false } // Exclude soft-deleted events
       }).toArray();
       res.json(events);
   } catch (ex) {
@@ -209,6 +304,7 @@ router.get('/events/week', requireAuthentication, async (req, res) => {
       res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 
 router.get('/events/month', requireAuthentication, async (req, res) => {
@@ -219,7 +315,8 @@ router.get('/events/month', requireAuthentication, async (req, res) => {
   try {
       const events = await eventCollection.find({
           userId: new ObjectId(req.session.user_id),
-          startDateTime: { $gte: firstDayOfMonth, $lte: lastDayOfMonth }
+          startDateTime: { $gte: firstDayOfMonth, $lte: lastDayOfMonth },
+          deletedAt: { $exists: false } // Exclude soft-deleted events
       }).toArray();
       res.json(events);
   } catch (ex) {
@@ -228,21 +325,21 @@ router.get('/events/month', requireAuthentication, async (req, res) => {
   }
 });
 
+
 router.get('/calendar-view', requireAuthentication, async (req, res) => {
   try {
       const userId = req.session.user_id;
-      // Fetch user-specific events from the database
-      const events = await eventCollection.find({ userId: new ObjectId(userId) }).toArray();
+      const events = await eventCollection.find({ 
+          userId: new ObjectId(userId),
+          deletedAt: { $exists: false } // Exclude soft-deleted events
+      }).toArray();
 
-      res.render('calendar-view', {
-          userId,
-          events // Pass the events to the EJS template
-      });
+      res.render('calendar-view', { userId, events });
   } catch (error) {
-      console.error("Error fetching events:", error);
       res.status(500).render('error', { message: 'Internal server error' });
   }
 });
+
 
 
 
