@@ -3,9 +3,6 @@ const router = require('express').Router();
 const database = include('databaseConnectionMongoDB');
 var ObjectId = require('mongodb').ObjectId;
 
-const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
-
 
 
 const cloudinary = require('cloudinary');
@@ -14,9 +11,7 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_CLOUD_KEY,
   api_secret: process.env.CLOUDINARY_CLOUD_SECRET
 });
-const mongoose = require('mongoose');
 
-const bodyparser = require('body-parser');
 
 
 const bcrypt = require('bcrypt');
@@ -24,8 +19,7 @@ const {
     render
 } = require('express/lib/response');
 const session = require('express-session');
-const MongoStore = require('connect-mongodb-session')(session);
-const express = require('express');
+
 const passwordComplexity = require("joi-password-complexity");
 
 const complexityOptions = {
@@ -38,11 +32,8 @@ const complexityOptions = {
   requirementCount: 4, // Total number of requirements to satisfy
 };
 
-const req = require('express/lib/request');
-const ejs = require('ejs');
-const multer  = require('multer')
-const storage = multer.memoryStorage()
-const upload = multer({ storage: storage });
+
+
 
 const mongodb_database = process.env.REMOTE_MONGODB_DATABASE;
 const userCollection = database.db(mongodb_database).collection('users');
@@ -394,8 +385,152 @@ function requireAuthentication(req, res, next) {
 
 
 
+router.get('/friend-list', requireAuthentication, async (req, res) => {
+  try {
+      console.log("Accessing friend-list route"); // Debugging line
+      const user = await userCollection.findOne({ _id: new ObjectId(req.session.user_id) });
+      console.log("User found:", user); // Debugging line
+      const friendList = user.friendList || [];
+
+      res.render('friend-list', {
+          friends: friendList,
+          userFriendCode: user.friendCode
+      });
+  } catch (error) {
+      console.error("Error fetching friend list:", error);
+      res.status(500).render('error', { message: 'Error fetching friend list' });
+  }
+});
 
 
+
+
+router.get('/friend-requests', requireAuthentication, async (req, res) => {
+  try {
+      const user = await userCollection.findOne({ _id: new ObjectId(req.session.user_id) });
+      const friendRequests = user.friendRequests || [];
+
+      // Render the friend requests page
+      res.render('friend-requests', {
+          friendRequests: friendRequests
+      });
+  } catch (error) {
+      console.error("Error fetching friend requests:", error);
+      res.status(500).render('error', { message: 'Error fetching friend requests' });
+  }
+});
+
+// router.post('/add-friend', requireAuthentication, async (req, res) => {
+//   const friendCode = req.body.friendCode;
+//   const userId = req.session.user_id;
+
+//   try {
+//       // Find the user with the given friend code
+//       const friendUser = await userCollection.findOne({ friendCode: friendCode });
+
+//       if (!friendUser) {
+//           // Handle case where no user is found with the given friend code
+//           return res.status(404).render('error', { message: 'User with provided friend code not found' });
+//       }
+
+//       // Update the friendRequests array of the user with the given friend code
+//       await userCollection.updateOne(
+//           { _id: friendUser._id },
+//           { $addToSet: { friendRequests: new ObjectId(userId) } } // Use $addToSet to avoid duplicate requests
+//       );
+
+//       res.redirect('/friend-requests'); // Redirect to the friend requests page
+//   } catch (error) {
+//       console.error("Error adding friend:", error);
+//       res.status(500).render('error', { message: 'Error adding friend' });
+//   }
+// });
+
+router.post('/accept-friend-request/:requesterId', requireAuthentication, async (req, res) => {
+  const requesterId = req.params.requesterId;
+  const userId = req.session.user_id;
+
+  try {
+      // Add each other to their respective friend lists
+      await userCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $addToSet: { friendList: new ObjectId(requesterId) } }
+      );
+
+      await userCollection.updateOne(
+          { _id: new ObjectId(requesterId) },
+          { $addToSet: { friendList: new ObjectId(userId) } }
+      );
+
+      // Remove the request from the friendRequests array
+      await userCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $pull: { friendRequests: new ObjectId(requesterId) } }
+      );
+
+      res.redirect('/friend-list'); // Redirect to the friend list page
+  } catch (error) {
+      console.error("Error accepting friend request:", error);
+      res.status(500).render('error', { message: 'Error accepting friend request' });
+  }
+});
+
+// Route to reject a friend request
+router.post('/reject-friend-request/:requestId', requireAuthentication, async (req, res) => {
+  const requestId = req.params.requestId;
+  const userId = req.session.user_id;
+
+  try {
+      // Update the user's document to remove the friend request
+      await userCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $pull: { friendRequests: { _id: new ObjectId(requestId) } } } // Remove the request from the friendRequests array
+      );
+
+      res.redirect('/friend-requests'); // Redirect back to the friend requests page
+  } catch (error) {
+      console.error("Error rejecting friend request:", error);
+      res.status(500).render('error', { message: 'Error rejecting friend request' });
+  }
+});
+
+// Route to send a friend request
+router.post('/send-friend-request', requireAuthentication, async (req, res) => {
+  try {
+    const { friendCode } = req.body; // Friend code entered by the user
+    const userId = req.session.user_id; // Current user's ID
+
+    // Find the user with the given friend code
+    const friendUser = await userCollection.findOne({ friendCode });
+
+    if (!friendUser) {
+      return res.status(404).render('error', { message: 'Friend code not found' });
+    }
+
+    // Add a friend request to the friend user's collection
+    // Assuming there's a collection or array for friend requests in user document
+    await userCollection.updateOne(
+      { _id: friendUser._id },
+      { $push: { friendRequests: userId } }
+    );
+
+    res.redirect('/friend-list'); // Redirect back to the friend list page
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+    res.status(500).render('error', { message: 'Error sending friend request' });
+  }
+});
+
+
+
+function generateRandomCode(length) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
 
 
 router.post('/addUser', async (req, res) => {
@@ -434,13 +569,18 @@ router.post('/addUser', async (req, res) => {
 		  console.log(err);
 		  return res.render('error', { message: 'An error occurred' });
 		}
-  
-		await userCollection.insertOne({
-		  first_name: req.body.first_name,
-		  last_name: req.body.last_name,
-		  email: req.body.email,
-		  password: hash
-		});
+            // Generate a unique friend code
+            const friendCode = generateRandomCode(6);
+
+            await userCollection.insertOne({
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                email: req.body.email,
+                password: hash,
+                friendCode: friendCode, // Store the friend code
+                friendList: [], // Initialize empty friend list
+                friendRequests: [] // Initialize empty friend requests list
+            });
   
 
   
@@ -471,6 +611,7 @@ router.get("*", (req,res) => {
 	res.status(404);
 	res.render("404");
 })
+
 
 
 

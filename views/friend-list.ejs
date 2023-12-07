@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  </head>
+  <body>
+      <!-- Sticky Header -->
+      <%- include("templates/header") %>
+      <!-- End of Header -->
+  <div class="main-content">
+      <div class="container">
+          <div class="section">
+              <h1 class="title">Friend List</h1>
+              
+              <!-- Display User's Friend Code -->
+              <div class="box">
+                  <h2 class="subtitle">Your Friend Code: <%= userFriendCode %></h2>
+              </div>
+  
+              <!-- Add Friend Form -->
+              <div class="box">
+                  <form action="/send-friend-request" method="post">
+                      <div class="field">
+                          <label class="label">Friend's Code</label>
+                          <div class="control">
+                              <input class="input" type="text" name="friendCode" placeholder="Enter Friend's Code" required>
+                          </div>
+                      </div>
+                      <div class="control">
+                          <button type="submit" class="button is-primary">Add Friend</button>
+                      </div>
+                  </form>
+              </div>
+  
+              <!-- Friend List -->
+              <div class="box">
+                  <% if (friends && friends.length > 0) { %>
+                      <% friends.forEach(friend => { %>
+                          <div class="friend">
+                              <p><%= friend.name %></p>
+                          </div>
+                      <% }); %>
+                  <% } else { %>
+                      <p>You have no friends added.</p>
+                  <% } %>
+              </div>
+          </div>
+      </div>
+    </div>
+  
+      <!-- Sticky Footer -->
+      <%- include("templates/footer") %>
+      <!-- End of Footer -->
+  </body>
+  </html>

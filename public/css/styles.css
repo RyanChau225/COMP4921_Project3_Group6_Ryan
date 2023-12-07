@@ -3,7 +3,7 @@ body {
   padding-top: 6rem;
   flex-direction: column;
   min-height: 100vh;
-  background-image: url('codioful-formerly-gradienta-LeG68PrXA6Y-unsplash.jpg');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)), url('6dd02ff6-64e0-4121-b809-f47ec563b41f.webp');
   background-repeat: no-repeat;
   /* This will prevent the image from repeating in case it's too small for the container */
   background-size: cover;
@@ -15,6 +15,9 @@ body {
 
   
 }
+
+
+
 .empty-cell {
   /* Style for empty cells to maintain grid alignment */
   background-color: transparent;

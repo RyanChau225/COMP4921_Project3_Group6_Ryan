@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  </head>
+  <body>
+      <!-- Sticky Header -->
+      <%- include("templates/header") %>
+      <!-- End of Header -->
+      <div class="main-content">
+      <div class="container">
+          <div class="section">
+              <h1 class="title">Friend Requests</h1>
+              <div class="box">
+                  <% if (friendRequests && friendRequests.length > 0) { %>
+                      <% friendRequests.forEach(request => { %>
+                          <div class="friend-request">
+                              <p><%= request.name %></p>
+                              <form action="/accept-friend-request/<%= request._id %>" method="post">
+                                  <button type="submit" class="button is-success">Accept</button>
+                              </form>
+                              <form action="/reject-friend-request/<%= request._id %>" method="post">
+                                  <button type="submit" class="button is-danger">Decline</button>
+                              </form>
+                          </div>
+                      <% }); %>
+                  <% } else { %>
+                      <p>You have no pending friend requests.</p>
+                  <% } %>
+              </div>
+          </div>
+      </div>
+    </div>
+      <!-- Sticky Footer -->
+      <%- include("templates/footer") %>
+      <!-- End of Footer -->
+  </body>
+  </html>
